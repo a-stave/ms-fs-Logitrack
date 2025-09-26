@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LogiTrack;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 
 [Authorize(Roles = "Manager")]
 [ApiController]
@@ -9,16 +10,34 @@ using Microsoft.AspNetCore.Authorization;
 public class InventoryController : ControllerBase
 {
     private readonly LogiTrackContext _context;
+    private readonly IMemoryCache _cache;
 
-    public InventoryController(LogiTrackContext context)
+    public InventoryController(LogiTrackContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<InventoryItem>>> GetAllItems()
     {
-        return Ok(await _context.InventoryItems.ToListAsync());
+        const string cacheKey = "inventoryList";
+
+        if (_cache.TryGetValue(cacheKey, out List<InventoryItem> cachedInventory))
+            return Ok(cachedInventory);
+
+        var inventory = await _context.InventoryItems
+            .AsNoTracking()
+            .ToListAsync();
+
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        };
+
+        _cache.Set(cacheKey, inventory, cacheOptions);
+
+        return Ok(inventory);
     }
 
     [HttpPost]
@@ -29,6 +48,7 @@ public class InventoryController : ControllerBase
 
         _context.InventoryItems.Add(item);
         await _context.SaveChangesAsync();
+        _cache.Remove("inventoryList");
         return CreatedAtAction(nameof(GetAllItems), new { id = item.ItemId }, item);
     }
 
@@ -44,6 +64,7 @@ public class InventoryController : ControllerBase
 
         _context.InventoryItems.Remove(item);
         await _context.SaveChangesAsync();
+        _cache.Remove("inventoryList");
         return NoContent();
     }
 }

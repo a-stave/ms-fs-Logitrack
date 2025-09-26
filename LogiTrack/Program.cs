@@ -34,6 +34,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddMemoryCache();
+
 // Add services to the container
 builder.Services.AddControllers();
 

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using LogiTrack;
 using LogiTrack.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 
 [Authorize]
 [ApiController]
@@ -10,18 +11,26 @@ using Microsoft.AspNetCore.Authorization;
 public class OrderController : ControllerBase
 {
     private readonly LogiTrackContext _context;
+    private readonly IMemoryCache _cache;
 
-    public OrderController(LogiTrackContext context)
+    public OrderController(LogiTrackContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
+        string cacheKey = $"orders_page_{page}_size_{pageSize}";
+
+        if (_cache.TryGetValue(cacheKey, out List<OrderDto> cachedOrders))
+            return Ok(cachedOrders);
+
         var orders = await _context.Orders
             .Include(o => o.Items)
                 .ThenInclude(oi => oi.InventoryItem)
+            .AsNoTracking()
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -39,6 +48,13 @@ public class OrderController : ControllerBase
             }).ToList()
         }).ToList();
 
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+        };
+
+        _cache.Set(cacheKey, orderDtos, cacheOptions);
+
         return Ok(orderDtos);
     }
 
@@ -51,6 +67,7 @@ public class OrderController : ControllerBase
         var order = await _context.Orders
             .Include(o => o.Items)
                 .ThenInclude(oi => oi.InventoryItem)
+            .AsNoTracking()
             .FirstOrDefaultAsync(o => o.OrderId == id);
 
         if (order == null)
@@ -104,6 +121,7 @@ public class OrderController : ControllerBase
         var savedOrder = await _context.Orders
             .Include(o => o.Items)
                 .ThenInclude(oi => oi.InventoryItem)
+            .AsNoTracking()
             .FirstOrDefaultAsync(o => o.OrderId == order.OrderId);
 
         var dtoResponse = new OrderDto
