@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LogiTrack;
+using Microsoft.AspNetCore.Authorization;
 
+[Authorize(Roles = "Manager")]
 [ApiController]
 [Route("api/[controller]")]
 public class InventoryController : ControllerBase
