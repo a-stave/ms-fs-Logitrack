@@ -37,7 +37,7 @@ public class InventoryController : ControllerBase
             return BadRequest($"ItemId must be in range of {InventoryItem.MinItemId}-{InventoryItem.MaxItemId}.");
 
         var item = await _context.InventoryItems.FindAsync(id);
-        if (null == item)
+        if (item == null)
             return NotFound($"Item with ID {id} not found.");
 
         _context.InventoryItems.Remove(item);

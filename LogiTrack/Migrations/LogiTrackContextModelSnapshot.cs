@@ -39,15 +39,10 @@ namespace LogiTrack.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<int?>("OrderId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
                     b.HasKey("ItemId");
-
-                    b.HasIndex("OrderId");
 
                     b.ToTable("InventoryItems");
                 });
@@ -73,11 +68,49 @@ namespace LogiTrack.Migrations
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("LogiTrack.InventoryItem", b =>
+            modelBuilder.Entity("LogiTrack.OrderItem", b =>
                 {
-                    b.HasOne("LogiTrack.Order", null)
+                    b.Property<int>("OrderItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("OrderItemId"));
+
+                    b.Property<int>("InventoryItemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderItemId");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("LogiTrack.OrderItem", b =>
+                {
+                    b.HasOne("LogiTrack.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LogiTrack.Order", "Order")
                         .WithMany("Items")
-                        .HasForeignKey("OrderId");
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("LogiTrack.Order", b =>

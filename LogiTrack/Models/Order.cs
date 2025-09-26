@@ -23,12 +23,12 @@ namespace LogiTrack
         public DateTime DatePlaced { get; set; } = DateTime.UtcNow;
 
         [Required]
-        public List<InventoryItem> Items { get; set; } = new List<InventoryItem>();
+        public List<OrderItem> Items { get; set; } = new();
 
         // Constructors
         public Order() { }
 
-        public Order(int id, string name, DateTime time, List<InventoryItem> items)
+        public Order(int id, string name, DateTime time, List<OrderItem> items)
         {
             var regex = new Regex(@"^[a-zA-Z0-9\s!@#$%^&*]+$");     // Sanitize inputs
 
@@ -44,12 +44,12 @@ namespace LogiTrack
             OrderId = id;
             CustomerName = name;
             DatePlaced = time;
-            Items = new List<InventoryItem>(items);
+            Items = new List<OrderItem>(items);
         }
 
         public override string ToString() => $"Order #{OrderId} for {CustomerName}| Items: {Items.Count()}| Placed: {DatePlaced.ToShortDateString()}";
 
-        public void AddItem(InventoryItem item)
+        public void AddItem(OrderItem item)
         {
             if (null == item)
                 throw new ArgumentNullException(nameof(item), "Cannot add a null item.");
@@ -58,7 +58,7 @@ namespace LogiTrack
 
         public void RemoveItem(int itemId)
         {
-            var target = Items.Find(item => item.ItemId == itemId);
+            var target = Items.Find(item => item.InventoryItemId == itemId);
             if (null != target)
                 Items.Remove(target);
         }
